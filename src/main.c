@@ -21,19 +21,12 @@
 
 // Tehtävä 3: Tilakoneen esittely Add missing states.
 // Exercise 3: Definition of the state machine. Add missing states.
-enum state { WAITING=1};
+enum state { DATA_READY,WAITING=1};
 enum state programState = WAITING;
 
 // Tehtävä 3: Valoisuuden globaali muuttuja
 // Exercise 3: Global variable for ambient light
 uint32_t ambientLight;
-
-static void btn_fxn(uint gpio, uint32_t eventMask) {
-    // Tehtävä 1: Vaihda LEDin tila.
-    //            Tarkista SDK, ja jos et löydä vastaavaa funktiota, sinun täytyy toteuttaa se itse.
-    // Exercise 1: Toggle the LED. 
-    //             Check the SDK and if you do not find a function you would need to implement it yourself. 
-}
 
 static void sensor_task(void *arg){
     (void)arg;
@@ -46,8 +39,11 @@ static void sensor_task(void *arg){
         //             
         // Exercise 2: Modify with application code here. Comment following line.
         //             Read sensor data and print it out as string; 
-        tight_loop_contents(); 
-
+        // tight_loop_contents(); 
+        if (programState == DATA_READY) {
+        ambientLight = veml6030_read_light();
+        programState = WAITING;
+        }
 
    
 
@@ -68,7 +64,7 @@ static void sensor_task(void *arg){
         
         // Exercise 2. Just for sanity check. Please, comment this out
         // Tehtävä 2: Just for sanity check. Please, comment this out
-        printf("sensorTask\n");
+        // printf("sensorTask\n");
 
         // Do not remove this
         vTaskDelay(pdMS_TO_TICKS(1000));
@@ -86,7 +82,11 @@ static void print_task(void *arg){
         // Exercise 3: Print out sensor data as string to debug window if the state is correct
         //             Remember to modify state
         //             Do not forget to comment next line of code.
-        tight_loop_contents();
+        if (programState == WAITING) {
+        printf("Ambient light: %d\n", ambientLight);
+        programState = DATA_READY;
+        }
+        //tight_loop_contents();
         
 
 
@@ -133,6 +133,29 @@ static void usbTask(void *arg) {
 }*/
 
 int main() {
+
+
+void toggle_led(uint gpio, uint32_t eventMask) {
+    // We change the state of the LED using negation
+    uint8_t pinValue = gpio_get(RED_LED_PIN);
+    pinValue = !pinValue;
+    gpio_put(RED_LED_PIN, pinValue);
+}
+
+
+
+    stdio_init_all();
+
+    // Initializing pins
+    gpio_init(SW1_PIN);
+    gpio_set_dir(SW1_PIN, GPIO_IN);
+    
+    gpio_init(RED_LED_PIN);
+    gpio_set_dir(RED_LED_PIN, GPIO_OUT);
+
+   // We set the buttonFxn as an interrupt handler
+   // for the button pin
+    gpio_set_irq_enabled_with_callback(SW1_PIN, GPIO_IRQ_EDGE_FALL, true, toggle_led);
 
     // Exercise 4: Comment the statement stdio_init_all(); 
     //             Instead, add AT THE END OF MAIN (before vTaskStartScheduler();) adequate statements to enable the TinyUSB library and the usb-serial-debug.
