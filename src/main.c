@@ -13,8 +13,6 @@
 // Exercise 4. Include the libraries necessaries to use the usb-serial-debug, and tinyusb
 // Tehtävä 4 . Lisää usb-serial-debugin ja tinyusbin käyttämiseen tarvittavat kirjastot.
 
-
-
 #define DEFAULT_STACK_SIZE 2048
 #define CDC_ITF_TX      1
 
