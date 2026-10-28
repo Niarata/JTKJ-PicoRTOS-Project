@@ -47,6 +47,9 @@ pico_sdk_init()
 
 # DO NOT EDIT: Configure FreeRTOS =================================================================
 # First include FreeRTOS Kernel libraries
+# Add this line with the correct path to your FreeRTOS-Kernel folder
+# set(FREERTOS_KERNEL_PATH "C:\\Users\\kolga\\freertos-pico\\FreeRTOS-Kernel")
+
 include(FreeRTOS_Kernel_import.cmake)
 
 # Include the configuration files. 
