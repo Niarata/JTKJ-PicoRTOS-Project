@@ -4,6 +4,7 @@
 #include <FreeRTOS.h>
 #include <queue.h>
 #include <task.h>
+#include <math.h>
 
 #include "tkjhat/sdk.h"
 
@@ -56,7 +57,7 @@ void mainControlTask(void *pvParameters) {
             case WORKING:
                 // 2. Luetaan IMU-dataa vain silloin, kun laite on "WORKING"-tilassa
                 if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
-                    printf("Kiihtyvyys: X=%.2f, Y=%.2f, Z=%.2f | Lämpö: %.1f C\n", ax, ay, az, t);
+                    printf("Kiihtyvyys: X=%.2f*90, Y=%.2f*90, Z=%.2f*90 | Lämpö: %.1f C\n", ax, ay, az, t);
                 } else {
                     printf("Datan luku epäonnistui\n");
                 }
