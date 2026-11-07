@@ -12,7 +12,6 @@
 #define CDC_ITF_TX      1
 
 
-// Määritellään tilat
 typedef enum {
     INIT,
     IDLE,
@@ -21,7 +20,6 @@ typedef enum {
 
 volatile SystemState current_state = INIT;
 
-// Napin keskeytyskäsittelijä
 void button_isr(uint gpio, uint32_t eventMask) {
     if (current_state == IDLE) {
         current_state = WORKING;
@@ -32,56 +30,59 @@ void button_isr(uint gpio, uint32_t eventMask) {
 
 // RTOS Task 1: Pääohjain ja tilakone
 void mainControlTask(void *pvParameters) {
-    // Muuttujat IMU-datan tallentamiseen
     float ax, ay, az, gx, gy, gz, t;
 
     while(1) {
         switch(current_state) {
             case INIT:
-                // 1. Alustetaan IMU-sensori laitteen käynnistyessä
                 if (init_ICM42670() == 0) {
                     printf("IMU alustettu onnistuneesti!\n");
                     ICM42670_start_with_default_values();
                 } else {
                     printf("Virhe IMU-sensorin alustuksessa.\n");
                 }
-                
-                // Siirrytään odotustilaan
                 current_state = IDLE;
                 break;
                 
             case IDLE:
-                // Odotustilassa ei tehdä mitään raskasta.
                 break;
                 
             case WORKING:
                 if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
-                    // Lasketaan kallistuskulmat radiaaneista asteiksi (180 / Pii = n. 57.2958)
-                    // Roll = sivuttaiskallistus, Pitch = eteen/taakse kallistus
-                    float roll = atan2(ay, az) * 57.2958f;
-                    float pitch = atan2(-ax, sqrt(ay * ay + az * az)) * 57.2958f;
+                    
+                    // 1. Käännetään X-akselin suunta päinvastaiseksi
+                    ax = -ax;
 
-                    // Tulostetaan asteet (ilman desimaaleja, selkeyden vuoksi: %.0f)
-                    printf("Kallistus: Roll=%.0f astetta, Pitch=%.0f astetta\n", roll, pitch);
+                    // 2. Lasketaan kaikkien kolmen akselin kulmat asteina
+                    // X-akseli (Pitch / eteen-taakse)
+                    float angle_x = atan2(ax, sqrt(ay * ay + az * az)) * 57.2958f;
+                    
+                    // Y-akseli (Roll / sivulle)
+                    float angle_y = atan2(ay, sqrt(ax * ax + az * az)) * 57.2958f;
+                    
+                    // Z-akseli (Kallistus pystysuunnasta)
+                    float angle_z = atan2(sqrt(ax * ax + ay * ay), az) * 57.2958f;
+
+                    // Tulostetaan kaikki kolme suuntaa
+                    printf("Kulmat: X=%.0f, Y=%.0f, Z=%.0f\n", angle_x, angle_y, angle_z);
+                    
                 } else {
                     printf("Datan luku epäonnistui\n");
                 }
                 break;
         }
         
-        // Viive (200 ms). Tämä tarkoittaa, että WORKING-tilassa dataa tulostetaan 5 kertaa sekunnissa.
         vTaskDelay(pdMS_TO_TICKS(200)); 
     }
 }
 
-// RTOS Task 2: LEDin ohjaus tilan mukaan
 void ledControlTask(void *pvParameters) {
     while(1) {
         if (current_state == IDLE) {
-            gpio_put(RED_LED_PIN, 0); // LED OFF
+            gpio_put(RED_LED_PIN, 0);
         } 
         else if (current_state == WORKING) {
-            gpio_put(RED_LED_PIN, 1); // LED ON
+            gpio_put(RED_LED_PIN, 1);
         }
         vTaskDelay(pdMS_TO_TICKS(100));
     }
@@ -90,18 +91,14 @@ void ledControlTask(void *pvParameters) {
 int main() {
     stdio_init_all();
 
-    // Pinnien alustukset (Nappi ja LED)
     gpio_init(SW1_PIN);
     gpio_set_dir(SW1_PIN, GPIO_IN);
     
     gpio_init(RED_LED_PIN);
     gpio_set_dir(RED_LED_PIN, GPIO_OUT);
 
-    // Napin keskeytyksen asetus
     gpio_set_irq_enabled_with_callback(SW1_PIN, GPIO_IRQ_EDGE_FALL, true, button_isr);
     
-    // Odotetaan, että sarjaportti (Serial Monitor) yhdistyy tietokoneeseen, 
-    // jotta näemme varmasti "IMU alustettu" -tulosteen heti alussa.
     while (!stdio_usb_connected()){
         sleep_ms(10);
     }
@@ -109,7 +106,6 @@ int main() {
     init_hat_sdk();
     sleep_ms(300);
 
-    // RTOS-tehtävien luonti
     xTaskCreate(mainControlTask, "MainControl", 2048, NULL, 2, NULL);
     xTaskCreate(ledControlTask, "LedControl", 1024, NULL, 1, NULL);
 
