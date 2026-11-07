@@ -55,9 +55,14 @@ void mainControlTask(void *pvParameters) {
                 break;
                 
             case WORKING:
-                // 2. Luetaan IMU-dataa vain silloin, kun laite on "WORKING"-tilassa
                 if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
-                    printf("Kiihtyvyys: X=%.2f*90, Y=%.2f*90, Z=%.2f*90 | Lämpö: %.1f C\n", ax, ay, az, t);
+                    // Lasketaan kallistuskulmat radiaaneista asteiksi (180 / Pii = n. 57.2958)
+                    // Roll = sivuttaiskallistus, Pitch = eteen/taakse kallistus
+                    float roll = atan2(ay, az) * 57.2958f;
+                    float pitch = atan2(-ax, sqrt(ay * ay + az * az)) * 57.2958f;
+
+                    // Tulostetaan asteet (ilman desimaaleja, selkeyden vuoksi: %.0f)
+                    printf("Kallistus: Roll=%.0f astetta, Pitch=%.0f astetta\n", roll, pitch);
                 } else {
                     printf("Datan luku epäonnistui\n");
                 }
