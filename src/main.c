@@ -48,29 +48,14 @@ void mainControlTask(void *pvParameters) {
                 break;
                 
             case WORKING:
+                // 2. Luetaan IMU-dataa vain silloin, kun laite on "WORKING"-tilassa
                 if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
-                    
-                    // 1. Käännetään X-akselin suunta päinvastaiseksi
-                    ax = -ax;
-
-                    // 2. Lasketaan kaikkien kolmen akselin kulmat asteina
-                    // X-akseli (Pitch / eteen-taakse)
-                    float angle_x = atan2(ax, sqrt(ay * ay + az * az)) * 57.2958f;
-                    
-                    // Y-akseli (Roll / sivulle)
-                    float angle_y = atan2(ay, sqrt(ax * ax + az * az)) * 57.2958f;
-                    
-                    // Z-akseli (Kallistus pystysuunnasta)
-                    float angle_z = atan2(sqrt(ax * ax + ay * ay), az) * 57.2958f;
-
-                    // Tulostetaan kaikki kolme suuntaa
-                    printf("Kulmat: X=%.0f, Y=%.0f, Z=%.0f\n", angle_x, angle_y, angle_z);
-                    
+                    printf("Kiihtyvyys: X=%.2f, Y=%.2f, Z=%.2f | Lämpö: %.1f C\n", ax, ay, az, t);
                 } else {
                     printf("Datan luku epäonnistui\n");
                 }
                 break;
-        }
+        }   
         
         vTaskDelay(pdMS_TO_TICKS(200)); 
     }
